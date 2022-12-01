@@ -1,6 +1,9 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.0;
 pragma experimental ABIEncoderV2;
 
+import "hardhat/console.sol";
 
 contract Perrera {
 
@@ -32,6 +35,8 @@ contract Perrera {
 
     event persona_suscripta(bool);
     event perro_suscripto(bool);
+    //event E(bytes data);
+    //event persona_suscripta2(string);
 
     modifier soloPerrera(address _dir) {
         require(_dir==owner);
@@ -45,9 +50,11 @@ contract Perrera {
 
     function suscribirsePerrera (string memory _nombre, uint _id, uint _precio) public {
         require(_precio >= 50,"Debe suscribirse por 50");
+        console.log("Se ha suscripto correctamente");
         direccionDatosU[msg.sender] = usuario(_nombre, _id, 0);
         suscripcionActiva[msg.sender]= true;
         emit persona_suscripta(true);
+        //emit persona_suscripta2("PERSONA SUSCRIPTA");
     }
 
     function verDatosUsuario () public view soloSuscripto(msg.sender) returns(string memory, uint, uint)  {
@@ -71,6 +78,22 @@ contract Perrera {
         uint hash_intermedio = uint256(uint160(msg.sender)) + _nPerro; //Reproduzco HASH
         bytes32 hash_final = keccak256(abi.encodePacked(hash_intermedio));
         return (perroSuscripto[hash_final].nombre,perroSuscripto[hash_final].raza,perroSuscripto[hash_final].id_perro,perroSuscripto[hash_final].peso); //busco y devuelvo el perro correspondiente al hash generado
+    }
+
+
+    //Practicamos el for
+    function verDatosTodosPerros() public view soloSuscripto(msg.sender) returns (perro[] memory){
+        uint _nPerros = direccionDatosU[msg.sender].cantidadPerros;
+        require(_nPerros != 0, "Debe ingresar un numero de animal mayor a 0");
+        perro[] memory manada = new perro[](_nPerros);
+        console.log(_nPerros);
+        for (uint i=0; i==_nPerros; i++){
+            uint casi_hash = uint256(uint160(msg.sender)) + _nPerros; //creamos un hash nuevo con 
+            bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
+            //perro storage perrito = perroSuscripto[hash];
+            manada[i] = perroSuscripto[hash];
+        }
+        return manada;
     }
 
 }
