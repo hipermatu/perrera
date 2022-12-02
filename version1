@@ -48,8 +48,8 @@ contract Perrera {
         _;
     }
 
-    function suscribirsePerrera (string memory _nombre, uint _id, uint _precio) public {
-        require(_precio >= 50,"Debe suscribirse por 50");
+    function suscribirsePerrera (string memory _nombre, uint _id) public payable {
+        require(msg.value >= 0.001 ether,"Debe suscribirse por 0.001");
         console.log("Se ha suscripto correctamente");
         direccionDatosU[msg.sender] = usuario(_nombre, _id, 0);
         suscripcionActiva[msg.sender]= true;
@@ -61,7 +61,7 @@ contract Perrera {
         return (direccionDatosU[msg.sender].nombre, direccionDatosU[msg.sender].id, direccionDatosU[msg.sender].cantidadPerros);
     }
 
-    function suscribirPerro (string memory _nombre, string memory _raza, uint _id_perro, uint _peso) public soloSuscripto(msg.sender) {
+    function suscribirPerro (string memory _nombre, string memory _raza, uint _id_perro, uint _peso, uint _cantidadHoras) public soloSuscripto(msg.sender) {
         uint nPerros = direccionDatosU[msg.sender].cantidadPerros;
         nPerros += 1; //sumamos un perro mas a la lista de animales
         direccionDatosU[msg.sender].cantidadPerros = nPerros;
