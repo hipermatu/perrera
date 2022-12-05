@@ -10,6 +10,8 @@ contract Perrera {
     address public owner;
     address public contractAddress;
 
+    uint min = 1 minutes;
+
     constructor(){
         owner = msg.sender;
         contractAddress = address(this); 
@@ -19,6 +21,8 @@ contract Perrera {
         string nombre;
         uint id;
         uint cantidadPerros;
+        uint horaSuscripcion;
+        uint tiempoSuscripcion;
     }
 
     struct perro{
@@ -43,25 +47,33 @@ contract Perrera {
         _;
     }
 
+    //modifier esUsuario(address _dir) {
+    //    require(direccionDatosU[_dir]==true,"Usted no es usuario de la perrera");
+    //    _;
+    //}
+
     modifier soloSuscripto(address _dir) {
         require(suscripcionActiva[_dir]==suscripcionActiva[msg.sender],"USTED NO ESTA SUSCRIPTO");
+        //console.log((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp);
+        require((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)>block.timestamp, "Tiempo de suscripcion agotado");
         _;
     }
 
-    function suscribirsePerrera (string memory _nombre, uint _id) public payable {
-        require(msg.value >= 0.001 ether,"Debe suscribirse por 0.001");
+    function suscribirsePerrera (string memory _nombre, uint _id, uint _tiempoSuscripcion, uint _precio) public {
+        //require(msg.value >= 0.001 ether,"Debe suscribirse por 0.001");
+        require(_precio >= 1,"Debe suscribirse por 0.001");
         console.log("Se ha suscripto correctamente");
-        direccionDatosU[msg.sender] = usuario(_nombre, _id, 0);
+        direccionDatosU[msg.sender] = usuario(_nombre, _id, 0, block.timestamp,(_tiempoSuscripcion * min));
         suscripcionActiva[msg.sender]= true;
         emit persona_suscripta(true);
         //emit persona_suscripta2("PERSONA SUSCRIPTA");
     }
 
-    function verDatosUsuario () public view soloSuscripto(msg.sender) returns(string memory, uint, uint)  {
-        return (direccionDatosU[msg.sender].nombre, direccionDatosU[msg.sender].id, direccionDatosU[msg.sender].cantidadPerros);
+    function verDatosUsuario () public view soloSuscripto(msg.sender) returns(string memory, uint, uint, uint, uint)  {
+        return (direccionDatosU[msg.sender].nombre, direccionDatosU[msg.sender].id, direccionDatosU[msg.sender].cantidadPerros, direccionDatosU[msg.sender].horaSuscripcion, direccionDatosU[msg.sender].tiempoSuscripcion);
     }
 
-    function suscribirPerro (string memory _nombre, string memory _raza, uint _id_perro, uint _peso, uint _cantidadHoras) public soloSuscripto(msg.sender) {
+    function suscribirPerro (string memory _nombre, string memory _raza, uint _id_perro, uint _peso) public soloSuscripto(msg.sender) {
         uint nPerros = direccionDatosU[msg.sender].cantidadPerros;
         nPerros += 1; //sumamos un perro mas a la lista de animales
         direccionDatosU[msg.sender].cantidadPerros = nPerros;
@@ -82,18 +94,31 @@ contract Perrera {
 
 
     //Practicamos el for
-    function verDatosTodosPerros() public view soloSuscripto(msg.sender) returns (perro[] memory){
+    function verDatosTodosPerros() public view soloSuscripto(msg.sender) returns (perro[] memory _manada){
+        //Verifico que tenga algun animal suscripto
         uint _nPerros = direccionDatosU[msg.sender].cantidadPerros;
         require(_nPerros != 0, "Debe ingresar un numero de animal mayor a 0");
-        perro[] memory manada = new perro[](_nPerros);
         console.log(_nPerros);
+        
+
+
+        //perro[] memory _manada = new perro[](_nPerros);
         for (uint i=0; i==_nPerros; i++){
             uint casi_hash = uint256(uint160(msg.sender)) + _nPerros; //creamos un hash nuevo con 
             bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
             //perro storage perrito = perroSuscripto[hash];
-            manada[i] = perroSuscripto[hash];
+            _manada[i] = perroSuscripto[hash];
         }
-        return manada;
+        return _manada;
+    }
+
+    function verificarSuscripcion () public view returns(string memory, uint) {
+        if (((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp) > 0) {
+            return("Tiempo de suscripcion restante: ",((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp) );
+        } else {
+            return("Tiempo de suscripcion Terminado ",0 );
+        }
+        
     }
 
 }
