@@ -9,8 +9,11 @@ contract Perrera {
 
     address public owner;
     address public contractAddress;
+    address[] localUsuarios;
 
     uint min = 1 minutes;
+    uint cantUsuarios =0;
+    uint cantPerros =0;
 
     constructor(){
         owner = msg.sender;
@@ -38,6 +41,7 @@ contract Perrera {
 
 
     event persona_suscripta(bool);
+    event persona_resuscripta(bool);
     event perro_suscripto(bool);
     //event E(bytes data);
     //event persona_suscripta2(string);
@@ -46,15 +50,8 @@ contract Perrera {
         require(_dir==owner);
         _;
     }
-
-    //modifier esUsuario(address _dir) {
-    //    require(direccionDatosU[_dir]==true,"Usted no es usuario de la perrera");
-    //    _;
-    //}
-
     modifier soloSuscripto(address _dir) {
         require(suscripcionActiva[_dir]==suscripcionActiva[msg.sender],"USTED NO ESTA SUSCRIPTO");
-        //console.log((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp);
         require((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)>block.timestamp, "Tiempo de suscripcion agotado");
         _;
     }
@@ -66,6 +63,7 @@ contract Perrera {
         direccionDatosU[msg.sender] = usuario(_nombre, _id, 0, block.timestamp,(_tiempoSuscripcion * min));
         suscripcionActiva[msg.sender]= true;
         emit persona_suscripta(true);
+        localUsuarios.push(msg.sender);
         //emit persona_suscripta2("PERSONA SUSCRIPTA");
     }
 
@@ -81,7 +79,7 @@ contract Perrera {
         bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
         perroSuscripto[hash] = perro(_nombre, _raza, _id_perro, _peso);
         emit perro_suscripto(true);
-    
+        cantPerros = cantPerros +1;
     }
 
     function verDatosPerros(uint _nPerro) public view soloSuscripto(msg.sender) returns(string memory, string memory, uint, uint) {
@@ -92,16 +90,13 @@ contract Perrera {
         return (perroSuscripto[hash_final].nombre,perroSuscripto[hash_final].raza,perroSuscripto[hash_final].id_perro,perroSuscripto[hash_final].peso); //busco y devuelvo el perro correspondiente al hash generado
     }
 
-
     //Practicamos el for
     function verDatosTodosPerros() public view soloSuscripto(msg.sender) returns (perro[] memory _manada){
         //Verifico que tenga algun animal suscripto
         uint _nPerros = direccionDatosU[msg.sender].cantidadPerros;
         require(_nPerros != 0, "Debe ingresar un numero de animal mayor a 0");
         console.log(_nPerros);
-        
-
-
+    
         //perro[] memory _manada = new perro[](_nPerros);
         for (uint i=0; i==_nPerros; i++){
             uint casi_hash = uint256(uint160(msg.sender)) + _nPerros; //creamos un hash nuevo con 
@@ -112,13 +107,40 @@ contract Perrera {
         return _manada;
     }
 
-    function verificarSuscripcion () public view returns(string memory, uint) {
-        if (((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp) > 0) {
-            return("Tiempo de suscripcion restante: ",((direccionDatosU[msg.sender].horaSuscripcion+direccionDatosU[msg.sender].tiempoSuscripcion)-block.timestamp) );
+    function verificarSuscripcion () public returns(string memory, uint) {
+        int _hSus=int(direccionDatosU[msg.sender].horaSuscripcion);
+        int _tSus=int(direccionDatosU[msg.sender].tiempoSuscripcion);
+        int _dTime=(_hSus+_tSus)-int(block.timestamp);
+        if (_dTime < 0){
+            _dTime = 0;
+        } 
+        console.log(uint(_dTime));
+        if (_dTime > 0) {
+            console.log(uint(_dTime));
+            return("Tiempo de suscripcion restante: ",uint(_dTime ));
         } else {
+            suscripcionActiva[msg.sender]=false;
             return("Tiempo de suscripcion Terminado ",0 );
         }
-        
     }
 
+    function reSuscribirse(uint _id, uint _tiempoSuscripcion, uint _precio) public {
+        console.log(suscripcionActiva[msg.sender]);
+        require(_id==direccionDatosU[msg.sender].id,"Usted no es usuario de la perrera");
+        require(suscripcionActiva[msg.sender]==false,"Usted tiene una suscripcion activa");
+        require(_precio >= 1,"Debe resuscribirse por 0.001");
+        direccionDatosU[msg.sender].tiempoSuscripcion = (_tiempoSuscripcion * min);
+        direccionDatosU[msg.sender].horaSuscripcion = block.timestamp;
+        suscripcionActiva[msg.sender] = true;
+        emit persona_resuscripta(true);
+    }
+    function mostrarUsuarios() public view {
+        require(localUsuarios.length>0);
+        console.log("Existen usuarios",localUsuarios.length);
+        console.log(localUsuarios[0]);
+        for (uint i=0; i> localUsuarios.length ; i++){
+            console.log(i);
+            console.log(localUsuarios[i]);
+        }
+    }
 }
