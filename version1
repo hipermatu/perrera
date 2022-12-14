@@ -13,7 +13,7 @@ contract Perrera {
 
     uint min = 1 minutes;
     uint cantUsuarios =0;
-    uint cantPerros =0;
+    uint cantPerrosSus =0;
 
     constructor(){
         owner = msg.sender;
@@ -33,21 +33,24 @@ contract Perrera {
         string raza;
         uint id_perro;
         uint peso;
+        string estado;
     }
 
     mapping (address => usuario) direccionDatosU;
     mapping (address => bool) suscripcionActiva;
     mapping (bytes32 => perro) perroSuscripto;
-
+    perro[] aAdoptar;
+    //perro[] totalPerros;
 
     event persona_suscripta(bool);
     event persona_resuscripta(bool);
     event perro_suscripto(bool);
+    event perro_adoptado(bool);
     //event E(bytes data);
     //event persona_suscripta2(string);
 
     modifier soloPerrera(address _dir) {
-        require(_dir==owner);
+        require(_dir==owner,"Usted no tiene acceso a esta opcion");
         _;
     }
     modifier soloSuscripto(address _dir) {
@@ -77,37 +80,21 @@ contract Perrera {
         direccionDatosU[msg.sender].cantidadPerros = nPerros;
         uint casi_hash = uint256(uint160(msg.sender)) + nPerros; //creamos un hash nuevo con 
         bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
-        perroSuscripto[hash] = perro(_nombre, _raza, _id_perro, _peso);
+        perroSuscripto[hash] = perro(_nombre, _raza, _id_perro, _peso,"D");
         emit perro_suscripto(true);
-        cantPerros = cantPerros +1;
+        //totalPerros.push(perroSuscripto[hash]);
+        cantPerrosSus = cantPerrosSus +1;
     }
 
-    function verDatosPerros(uint _nPerro) public view soloSuscripto(msg.sender) returns(string memory, string memory, uint, uint) {
+    function verDatosPerros(uint _nPerro) public view soloSuscripto(msg.sender) returns(string memory, string memory, uint, uint,string memory) {
         require(_nPerro != 0, "Debe ingresar un numero de animal mayor a 0");
         require(_nPerro <= direccionDatosU[msg.sender].cantidadPerros, "Usted no tiene este numero de perro suscripto");
         uint hash_intermedio = uint256(uint160(msg.sender)) + _nPerro; //Reproduzco HASH
         bytes32 hash_final = keccak256(abi.encodePacked(hash_intermedio));
-        return (perroSuscripto[hash_final].nombre,perroSuscripto[hash_final].raza,perroSuscripto[hash_final].id_perro,perroSuscripto[hash_final].peso); //busco y devuelvo el perro correspondiente al hash generado
+        return (perroSuscripto[hash_final].nombre,perroSuscripto[hash_final].raza,perroSuscripto[hash_final].id_perro,perroSuscripto[hash_final].peso,perroSuscripto[hash_final].estado); //busco y devuelvo el perro correspondiente al hash generado
     }
 
-    //Practicamos el for
-    function verDatosTodosPerros() public view soloSuscripto(msg.sender) returns (perro[] memory _manada){
-        //Verifico que tenga algun animal suscripto
-        uint _nPerros = direccionDatosU[msg.sender].cantidadPerros;
-        require(_nPerros != 0, "Debe ingresar un numero de animal mayor a 0");
-        console.log(_nPerros);
-    
-        //perro[] memory _manada = new perro[](_nPerros);
-        for (uint i=0; i==_nPerros; i++){
-            uint casi_hash = uint256(uint160(msg.sender)) + _nPerros; //creamos un hash nuevo con 
-            bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
-            //perro storage perrito = perroSuscripto[hash];
-            _manada[i] = perroSuscripto[hash];
-        }
-        return _manada;
-    }
-
-    function verificarSuscripcion () public returns(string memory, uint) {
+    function verificarSuscripcion() public returns(string memory, uint) {
         int _hSus=int(direccionDatosU[msg.sender].horaSuscripcion);
         int _tSus=int(direccionDatosU[msg.sender].tiempoSuscripcion);
         int _dTime=(_hSus+_tSus)-int(block.timestamp);
@@ -134,13 +121,36 @@ contract Perrera {
         suscripcionActiva[msg.sender] = true;
         emit persona_resuscripta(true);
     }
-    function mostrarUsuarios() public view {
+    function mostrarUsuarios() public view soloPerrera(msg.sender) returns(address[] memory) {
         require(localUsuarios.length>0);
         console.log("Existen usuarios",localUsuarios.length);
-        console.log(localUsuarios[0]);
-        for (uint i=0; i> localUsuarios.length ; i++){
-            console.log(i);
-            console.log(localUsuarios[i]);
+        return(localUsuarios);
+    }
+    function ponerAdopcion(string memory _nombre, string memory _raza, uint _id_perro, uint _peso) public soloPerrera(msg.sender){
+        aAdoptar.push(perro(_nombre,_raza,_id_perro,_peso,"A"));
+    }
+    //Los animales se podrás adoptar solo si los potenciales duenios se suscriben a la perrera primero.
+    function verAdopcion() public view soloSuscripto(msg.sender) returns(perro[] memory){
+        return(aAdoptar);
+    }
+    function adoptarPerro(uint _id) public soloSuscripto(msg.sender) {
+        uint _cantH = aAdoptar.length;
+        uint _nPerros = direccionDatosU[msg.sender].cantidadPerros;
+        //Preparo Hash
+        uint casi_hash = uint256(uint160(msg.sender)) + _nPerros; //creamos un hash nuevo con 
+        bytes32 hash = keccak256(abi.encodePacked(casi_hash)); 
+        console.log(aAdoptar[0].id_perro);
+        console.log(_cantH);
+        for (uint i = 0; i>=_cantH; i++){
+            console.log(aAdoptar[i].id_perro);
+            if (_id == aAdoptar[i].id_perro){
+                _nPerros += 1; //sumamos un perro mas a la lista de animales del usuario
+                direccionDatosU[msg.sender].cantidadPerros = _nPerros;
+                perroSuscripto[hash] = perro(aAdoptar[i].nombre,aAdoptar[i].raza,aAdoptar[i].id_perro, aAdoptar[i].peso,"D");
+                emit perro_adoptado(true);
+                cantPerrosSus = cantPerrosSus +1;
+            } 
         }
     }
+
 }
