@@ -7,7 +7,7 @@ import "hardhat/console.sol";
 
 contract Perrera {
 
-    address payable public owner;
+    address private owner;
     address public contractAddress;
     address[] localUsuarios;
 
@@ -68,6 +68,10 @@ contract Perrera {
         _;
     }
 
+    function getOwner() public view returns(address){
+        return owner;
+    }
+
     function suscribirsePerrera (string memory _nombre, uint _id, uint _tiempoSuscripcion, uint _precio) public payable{
         require(msg.value >= 0.0001 ether,"Debe suscribirse por 0.0001");
         //require(_precio >= 1,"Debe suscribirse por 0.001");
@@ -86,6 +90,17 @@ contract Perrera {
 
     function verDatosUsuario () public view soloSuscripto(msg.sender) returns(string memory, uint, uint, uint, uint, estadoSuscripcion )  {
         return (direccionDatosU[msg.sender].nombre, direccionDatosU[msg.sender].id, direccionDatosU[msg.sender].cantidadPerros, direccionDatosU[msg.sender].horaSuscripcion, direccionDatosU[msg.sender].tiempoSuscripcion, direccionDatosU[msg.sender].susStatus);
+    }
+
+    // Mostrar el balance
+    function showBalance() public view soloPerrera(msg.sender) {
+        console.log(address(this).balance);
+    }
+
+    //Devolver el ether al contrato principal
+    function withdraw() external soloPerrera(msg.sender){
+        address payable _owner =  payable(address(uint160(getOwner())));
+        _owner.transfer(address(this).balance);
     }
 
     /*function suscribirPerro (string memory _nombre, string memory _raza, uint _id_perro, uint _peso) public soloSuscripto(msg.sender) {
