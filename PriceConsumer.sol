@@ -14,4 +14,9 @@ contract PriceConsumerV3 {
         (,int price,,,) = priceFeed.latestRoundData();
         return(price);
     }
+    function getConversionRate(uint256 ethAmount) public view returns(uint256){
+        uint256 ethPrice = uint256(getLatestPrice());
+        uint256 ethAmountInUSD = (ethPrice * ethAmount) / 100000000;
+        return ethAmountInUSD; 
+    }
 }
